@@ -1,0 +1,9 @@
+
+**** Error file opened at 20181017 132220 China Standard Time Rel 3.0.9 (2012-07-19) [720.310]
+Error: [2] >Wed Oct 17 13:22:20,102<    RfcException: [S4D|sapdevapp]
+    message: connection closed without message (CM_NO_DATA_RECEIVED)
+    Return code: RFC_CLOSED(6)
+    error group: 102
+    key: RFC_ERROR_COMMUNICATION
+Exception raised by S4D|sapdevapp
+

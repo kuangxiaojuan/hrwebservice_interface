@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:task="http://www.springframework.org/schema/task" 
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/task 
+		    http://www.springframework.org/schema/task/spring-task-4.0.xsd
+		    http://www.springframework.org/schema/beans 
+		    http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		    http://www.springframework.org/schema/cache 
+		    http://www.springframework.org/schema/cache/spring-cache-4.0.xsd
+		    http://www.springframework.org/schema/context 
+		    http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		    http://www.springframework.org/schema/mvc 
+		    http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd">
+    
+    <description>Spring-mvc配置</description>
+
+	<!-- 把com包目录中标记了@Controller、@Repository、@Service、@Component注解的类注册为bean -->
+	<context:component-scan base-package="dhr" use-default-filters="false">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+        <context:include-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+    </context:component-scan>
+	
+	<mvc:annotation-driven>
+		<mvc:message-converters register-defaults="true">
+			<!-- String转化器 -->
+			<bean id="stringHttpMessageConverter"
+			      class="org.springframework.http.converter.StringHttpMessageConverter">
+			    <property name="supportedMediaTypes">
+			        <list>
+			            <!-- 这里顺序不能反，一定先写text/html,不然ie下出现下载提示 -->
+			            <value>text/html;charset=UTF-8</value>
+			            <value>application/json;charset=UTF-8</value>
+			        </list>
+			    </property>
+			</bean>
+			
+			<!-- json输出 -->
+			<bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+				<property name="objectMapper">
+					<bean class="com.fasterxml.jackson.databind.ObjectMapper">
+						<property name="dateFormat">
+							<!-- 设置json日期格式 -->
+							<bean class="java.text.SimpleDateFormat">
+								<constructor-arg type="java.lang.String" value="yyyy-MM-dd HH:mm:ss"/>
+							</bean>
+						</property>
+						<!-- 时区指定   -->
+                        <property name="timeZone" value="GMT+8" />  
+                         <property name="serializationInclusion">
+			                <!-- 注入枚举类型,过滤对象，这样JSON中不会输出null -->
+			                <value type="com.fasterxml.jackson.annotation.JsonInclude.Include">NON_NULL</value>
+			            </property>
+					</bean>
+				</property>
+			</bean>
+		</mvc:message-converters>
+	</mvc:annotation-driven>
+	
+	<!-- 定时任务 -->
+	<task:annotation-driven scheduler="myScheduler"/>  
+	<!-- 推荐配置线程池，若不配置多任务下会有问题-->
+	<task:scheduler id="myScheduler" pool-size="10"/> 
+	
+	<mvc:resources mapping="/files/**" location="/files/"
+		cache-period="31556926" />
+		
+	<mvc:resources mapping="/resource/**" location="/resource/"
+		cache-period="31556926" />
+	
+	
+	<mvc:interceptors>
+		<!-- 国际化操作拦截器 如果采用基于（请求/Session/Cookie）则必需配置 -->
+		<bean class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor" />
+
+	</mvc:interceptors>
+	
+	<!-- 文件上传配置 -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver"
+		p:defaultEncoding="utf-8" >
+		<property name="maxUploadSize" value="31242880" />
+	</bean>
+	
+	<!-- 视图配置 -->
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="viewClass" value="org.springframework.web.servlet.view.InternalResourceView"/>
+		<property name="prefix" value="/WEB-INF/views/"/>
+		<property name="suffix" value=".jsp"/>
+		<property name="contentType" value="text/html;charset=UTF-8"/>
+	</bean>
+	
+	
+</beans>

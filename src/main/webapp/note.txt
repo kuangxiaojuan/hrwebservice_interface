@@ -1,0 +1,12 @@
+[{id=1, centralDept=人工成本, centralDeptId=laborCost, nextYearBgt=132323.48}, 
+{id=2, centralDept=1.工资, centralDeptId=sal, nextYearBgt=38050.00}, 
+{id=3, centralDept=2.福利费, centralDeptId=welfunds, nextYearBgt=1500.00}, 
+{id=4, centralDept=3.社保, centralDeptId=Ins, nextYearBgt=5808.28}, 
+{id=5, centralDept=4.年金8.33%, centralDeptId=annuity, nextYearBgt=3169.57}, 
+{id=6, centralDept=5.住房公积金, centralDeptId=houseProFunds, nextYearBgt=3263.88}, 
+{id=7, centralDept=6.交通补贴, centralDeptId=traSub, nextYearBgt=72000.00}, 
+{id=8, centralDept=7.通讯补贴, centralDeptId=comSub, nextYearBgt=7200.00}, 
+{id=9, centralDept=8.工会经费, centralDeptId=traUniFunds, nextYearBgt=761.00},
+ {id=10, centralDept=9.职工教育经费, centralDeptId=EudFunds, nextYearBgt=570.75}, 
+ {id=11, centralDept=10.非货币性福利, centralDeptId=ImMonWel}, 
+ {id=12, centralDept=11.劳务派遣, centralDeptId=laborDis}]

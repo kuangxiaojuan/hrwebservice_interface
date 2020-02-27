@@ -1,0 +1,9 @@
+#for tests only!
+#Sat Dec 29 17:35:18 CST 2018
+jco.client.lang=zh
+jco.client.client=800
+jco.client.passwd=Fhsj@123
+jco.client.user=sap_integ
+jco.client.mshost=172.30.18.100
+jco.client.group=LGRP
+jco.client.r3name=S4P
