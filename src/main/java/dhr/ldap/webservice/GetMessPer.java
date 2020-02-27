@@ -30,6 +30,9 @@ import com.landray.kmss.km.review.webservice.JsonUtil;
 import com.landray.kmss.km.review.webservice.KmReviewParamterForm;
 
 import dhr.utils.WriteIOstream;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
  * @author ZHONGYUAN
@@ -49,7 +52,7 @@ public class GetMessPer {
 		kqAbnormalMessage();// 考勤异常提醒
 	}
 
-	 @Scheduled(cron = "0 30 8 * * ?")
+	 @Scheduled(cron = "0 30 8 * * ?")//指定时间8点30分
 	public void synRegularMessage() {
 		System.out.println("--------转正提醒 ---------");
 		regularMessage();// 转正提醒
@@ -341,5 +344,103 @@ public class GetMessPer {
 		p.println(message);
 		p.close();
 	}
+	//////////////////////////////////////////////////////
+	//////////// cz代码
+	//////////////////////////////////////////////////////
+	@Scheduled(cron = "0 0 8 1 * ?")//每月1号8点
+	public void synPerformenceJianCe() {
+		System.out.println("--------绩效提醒---------");
+		performanceMessageJianCe();
+	}
 
+
+	@ResponseBody
+	@RequestMapping("/testRedirect1")
+	public String testRedirect1(){
+		System.out.println("testRedirect1");
+		return "123";
+	}
+	// 绩效提醒
+	public void performanceMessageJianCe() {
+		// 绩效提醒 传数据到OA
+		IKmReviewWebserviceService service = new IKmReviewWebserviceServiceProxy();
+		try {
+			Class.forName("oracle.jdbc.driver.OracleDriver");
+			java.sql.DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
+			// 测试：jdbc:oracle:thin:@172.30.30.20:1521:yksoft1919
+//			 正式：jdbc:oracle:thin:@172.30.11.93:1521:orcl
+//			String url = "jdbc:oracle:thin:@172.30.30.20:1521:yksoft1919";
+			String url = "jdbc:oracle:thin:@172.30.10.93:1521:orcl";
+			// String url = "jdbc:oracle:thin:@172.30.10.113:1521:orcl";
+			String username = "yksoft";
+			String userpwd = "yksoft1919";
+			Connection conn = java.sql.DriverManager.getConnection(url, username, userpwd);
+			// 从数据库表 Z_SYS_ORG_ELEMENT 中获取工号，部门 ，姓名id
+			String sql = "select a.e0127 e0127,a.a0101,b.fd_id nameID,d.fd_id deptID from usra01 a "
+					+ "left join Z_SYS_ORG_ELEMENT b on  CONCAT('HR',a.guidkey) = b.fd_import_info "
+					+ "left join organization c on c.codeitemid = a.e0122 "
+					+ "left join Z_SYS_ORG_ELEMENT d on CONCAT('HR',c.guidkey) = d.fd_import_info "
+					+ "where a.E0104='1' ";
+
+			// String sql = "select e0127,a0100 from usra01 where e0127='002472' ";
+			PreparedStatement stmt = conn.prepareStatement(sql);
+			ResultSet rs = stmt.executeQuery(sql);
+			// System.out.println("rs" + rs);
+			while (rs.next()) {
+				String e0127 = rs.getString("e0127");
+				String name = rs.getString("nameID");
+				String dept = rs.getString("deptID");
+				String a0101 = rs.getString("a0101");
+
+				Calendar date = Calendar.getInstance();
+				int year = date.get(Calendar.YEAR);
+				int month = date.get(Calendar.MONTH) + 1;
+				System.out.println("fd_period" + year + "." + month);
+
+				String sentence = "1.员工须于每月第一个工作日填完绩效计划。\n"
+						+ "2.评价人须在3个工作日内完成计划的审核与沟通，月末工作总结与绩效评分须在次月3号前完成，8号前最后一个工作日流程须结束，如未按以上时间要求进行处理，造成员工当月绩效无有效成绩，则由相应节点处理人负责。\n"
+						+ "3.当月绩效结果将推送至您OA平台的待阅栏，请及时查阅。如有异议，须于推送之日起的3个工作日内提起绩效申诉，逾期则视为您认同此结果\n";
+				KmReviewParamterForm krpf = new KmReviewParamterForm();
+				// 将必须要传的参数放进来
+				// form.setDocCreator("{\"PersonNo\": \"000994\"}")
+				krpf.setDocCreator("{\"PersonNo\": \"" + e0127 + "\"}");
+				krpf.setDocSubject(year + "年" + month + "月度绩效计划及评价-" + a0101 + "-" + e0127);
+				// krpf.setFdTemplateId("1630be52c76773ab6c5f6714c87b4cc5");//动态写进
+				// 测试
+//				krpf.setFdTemplateId("16a3321e74947a149d9da8346d5925ff");// 测试
+
+				krpf.setFdTemplateId("16a63559779e8cb2f93b0604d32857e2");// 正式
+				// 将两个参数设置到 krpf 中 传json格式
+				Map<String, String> krpfMap = new HashMap<String, String>();
+				krpfMap.put("fd_apply_person", name);
+				krpfMap.put("fd_person_no", e0127);
+				krpfMap.put("fd_apply_dept", dept);
+//				krpfMap.put("fd_warning", "考核评分完成后系统会将结果推送至您OA平台的待阅栏，请及时查阅。如有异议，须于推送之日起的3个工作日内提起绩效申诉，逾期则视为您认同此结果。");
+				krpfMap.put("fd_remind", sentence);// fd_period
+				krpfMap.put("fd_period", year + "年" + month + "月");
+				String jsonTemp = JsonUtil.map2json(krpfMap);
+				krpf.setFormValues(jsonTemp);
+				// jsonTemp 即为要传的参数
+				System.out.println("jsonTemp:" + jsonTemp);
+				try {
+					String reset = service.addReview(krpf);
+					System.out.println(reset);
+					WriteIOstream.GetwritetoJson("绩效提醒:", "传的数据" + jsonTemp + "回复数据：" + reset);
+//					printMessage("传的数据" + jsonTemp + "回复数据：" + reset);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				System.out.println("e0127:" + e0127);
+
+			}
+			System.out.println("exe sql");
+			stmt.close();
+			conn.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+
+	}
 }
