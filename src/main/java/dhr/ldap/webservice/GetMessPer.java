@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package dhr.ldap.webservice;
 
@@ -15,11 +15,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
@@ -30,6 +28,7 @@ import com.landray.kmss.km.review.webservice.JsonUtil;
 import com.landray.kmss.km.review.webservice.KmReviewParamterForm;
 
 import dhr.utils.WriteIOstream;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -42,30 +41,22 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @EnableScheduling
 public class GetMessPer {
 
-	// @Scheduled(cron = "0/5 * * * * ?")
-	// @Scheduled(cron = "0 17 17 * * ?")
-	 @Scheduled(cron = "0 30 8 * * ?")
+	@Scheduled(cron = "0 30 8 * * ?")
 	public void synOrg() {
 		System.out.println("--------考勤异常提醒---------");
-		// performanceMessage();
-		// regularMessage();//转正提醒
 		kqAbnormalMessage();// 考勤异常提醒
 	}
 
-	 @Scheduled(cron = "0 30 8 * * ?")//指定时间8点30分
+	@Scheduled(cron = "0 30 8 * * ?")//指定时间8点30分
 	public void synRegularMessage() {
 		System.out.println("--------转正提醒 ---------");
 		regularMessage();// 转正提醒
 	}
 
-//	 @Scheduled(cron = "0 35 15 * * ?")
-//	@Scheduled(cron = "0 0/10 17,18 * * ?")
 	@Scheduled(cron = "0 0 8 1 * ?")//每月1号8点
 	public void synPerformence() {
 		System.out.println("--------绩效提醒---------");
 		performanceMessage();
-		// regularMessage();//转正提醒
-		// kqAbnormalMessage();//考勤异常提醒
 	}
 
 	// 转正提醒
@@ -88,7 +79,7 @@ public class GetMessPer {
 //					+ "(select codeitemdesc from organization where codeitemid=usra01.e0122) e0122,"
 //					+ "hrpwarn_result.a0100 from hrpwarn_result "
 //					+ "left join usra01 on hrpwarn_result.a0100 = usra01.a0100 where wid=25";
-			
+
 			String sql = "select a.e0127,a.a0101,b.fd_id nameID,"
 					+ "(select codeitemdesc from organization where codeitemid=a.e0122) e0122,"
 					+ "hrpwarn_result.a0100 from hrpwarn_result  "
@@ -246,16 +237,12 @@ public class GetMessPer {
 		try {
 			Class.forName("oracle.jdbc.driver.OracleDriver");
 			java.sql.DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
-			// 测试：jdbc:oracle:thin:@172.30.30.20:1521:yksoft1919
-//			 正式：jdbc:oracle:thin:@172.30.11.93:1521:orcl
-//			String url = "jdbc:oracle:thin:@172.30.30.20:1521:yksoft1919";
-			String url = "jdbc:oracle:thin:@172.30.10.93:1521:orcl";
-			// String url = "jdbc:oracle:thin:@172.30.10.113:1521:orcl";
+			String url = proOracledUrl;
 			String username = "yksoft";
 			String userpwd = "yksoft1919";
 			Connection conn = java.sql.DriverManager.getConnection(url, username, userpwd);
 			// 从数据库表 Z_SYS_ORG_ELEMENT 中获取工号，部门 ，姓名id
-			String sql = "select a.e0127 e0127,a.a0101,b.fd_id nameID,d.fd_id deptID from usra01 a "
+			String sql = "select a.b0110 b0110,a.e0127 e0127,a.a0101,b.fd_id nameID,d.fd_id deptID from usra01 a "
 					+ "left join Z_SYS_ORG_ELEMENT b on  CONCAT('HR',a.guidkey) = b.fd_import_info "
 					+ "left join organization c on c.codeitemid = a.e0122 "
 					+ "left join Z_SYS_ORG_ELEMENT d on CONCAT('HR',c.guidkey) = d.fd_import_info "
@@ -266,6 +253,9 @@ public class GetMessPer {
 			ResultSet rs = stmt.executeQuery(sql);
 			// System.out.println("rs" + rs);
 			while (rs.next()) {
+				String b0110 = rs.getString("b0110");
+				if(StringUtils.isNotEmpty(b0110)) b0110 = b0110.trim();
+				if(Objects.equals(b0110,"100016")) continue;//不等于100016执行下列代码
 				String e0127 = rs.getString("e0127");
 				String name = rs.getString("nameID");
 				String dept = rs.getString("deptID");
@@ -284,11 +274,7 @@ public class GetMessPer {
 				// form.setDocCreator("{\"PersonNo\": \"000994\"}")
 				krpf.setDocCreator("{\"PersonNo\": \"" + e0127 + "\"}");
 				krpf.setDocSubject(year + "年" + month + "月度绩效计划及评价-" + a0101 + "-" + e0127);
-				// krpf.setFdTemplateId("1630be52c76773ab6c5f6714c87b4cc5");//动态写进
-				// 测试
-//				krpf.setFdTemplateId("16a3321e74947a149d9da8346d5925ff");// 测试
-				
-				krpf.setFdTemplateId("16a63559779e8cb2f93b0604d32857e2");// 正式
+				krpf.setFdTemplateId(prodJiXiaoRemaidTemplateId);
 				// 将两个参数设置到 krpf 中 传json格式
 				Map<String, String> krpfMap = new HashMap<String, String>();
 				krpfMap.put("fd_apply_person", name);
@@ -347,13 +333,37 @@ public class GetMessPer {
 	//////////////////////////////////////////////////////
 	//////////// cz代码
 	//////////////////////////////////////////////////////
+	private static final String devOracleUrl = "jdbc:oracle:thin:@172.30.10.113:1521:orcl";
+
+	private static final String proOracledUrl = "jdbc:oracle:thin:@172.30.10.93:1521:orcl";
+
+	private static final String devJiXiaoRemaidTemplateId = "16a3321e74947a149d9da8346d5925ff";
+
+	private static final String prodJiXiaoRemaidTemplateId = "16a63559779e8cb2f93b0604d32857e2";
 	@Scheduled(cron = "0 0 8 1 * ?")//每月1号8点
 	public void synPerformenceJianCe() {
-		System.out.println("--------绩效提醒---------");
+		System.out.println("--------检测公司绩效提醒---------");
 		performanceMessageJianCe();
 	}
-
-
+	@ResponseBody
+	@RequestMapping("/goJianCeRemaid/jianche/{username}/{password}")
+	public String synPerformenceJianCeByHander(@PathVariable String username,@PathVariable String password){
+		if("zhenshan.zhou".equals(username)&&"abc@1234".equals(password)){
+			performanceMessageJianCe();
+			return "{\"success\":\"執行成功\"}";
+		}
+		return "{\"success\":\"權限不足\"}";
+	}
+	@ResponseBody
+	@RequestMapping("/goJianCeRemaid/keji/{username}/{password}")
+	public String synPerformenceKeJiByHander(@PathVariable String username,@PathVariable String password){
+		if("zhenshan.zhou".equals(username)&&"abc@1234".equals(password)){
+			performanceMessage();
+			return "{\"success\":\"執行成功\"}";
+		}
+		return "{\"success\":\"權限不足\"}";
+	}
+	//测试该class是否部署成功
 	@ResponseBody
 	@RequestMapping("/testRedirect1")
 	public String testRedirect1(){
@@ -367,16 +377,12 @@ public class GetMessPer {
 		try {
 			Class.forName("oracle.jdbc.driver.OracleDriver");
 			java.sql.DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
-			// 测试：jdbc:oracle:thin:@172.30.30.20:1521:yksoft1919
-//			 正式：jdbc:oracle:thin:@172.30.11.93:1521:orcl
-//			String url = "jdbc:oracle:thin:@172.30.30.20:1521:yksoft1919";
-			String url = "jdbc:oracle:thin:@172.30.10.93:1521:orcl";
-			// String url = "jdbc:oracle:thin:@172.30.10.113:1521:orcl";
+			String url = proOracledUrl;
 			String username = "yksoft";
 			String userpwd = "yksoft1919";
 			Connection conn = java.sql.DriverManager.getConnection(url, username, userpwd);
 			// 从数据库表 Z_SYS_ORG_ELEMENT 中获取工号，部门 ，姓名id
-			String sql = "select a.e0127 e0127,a.a0101,b.fd_id nameID,d.fd_id deptID from usra01 a "
+			String sql = "select a.b0110 b0110,a.e0127 e0127,a.a0101,b.fd_id nameID,d.fd_id deptID from usra01 a "
 					+ "left join Z_SYS_ORG_ELEMENT b on  CONCAT('HR',a.guidkey) = b.fd_import_info "
 					+ "left join organization c on c.codeitemid = a.e0122 "
 					+ "left join Z_SYS_ORG_ELEMENT d on CONCAT('HR',c.guidkey) = d.fd_import_info "
@@ -385,8 +391,12 @@ public class GetMessPer {
 			// String sql = "select e0127,a0100 from usra01 where e0127='002472' ";
 			PreparedStatement stmt = conn.prepareStatement(sql);
 			ResultSet rs = stmt.executeQuery(sql);
-			// System.out.println("rs" + rs);
 			while (rs.next()) {
+				String b0110 = rs.getString("b0110");
+
+				if(StringUtils.isNotEmpty(b0110)) b0110 = b0110.trim();
+				if(!Objects.equals(b0110,"100016")) continue;//等于100016执行下列代码
+
 				String e0127 = rs.getString("e0127");
 				String name = rs.getString("nameID");
 				String dept = rs.getString("deptID");
@@ -405,11 +415,7 @@ public class GetMessPer {
 				// form.setDocCreator("{\"PersonNo\": \"000994\"}")
 				krpf.setDocCreator("{\"PersonNo\": \"" + e0127 + "\"}");
 				krpf.setDocSubject(year + "年" + month + "月度绩效计划及评价-" + a0101 + "-" + e0127);
-				// krpf.setFdTemplateId("1630be52c76773ab6c5f6714c87b4cc5");//动态写进
-				// 测试
-//				krpf.setFdTemplateId("16a3321e74947a149d9da8346d5925ff");// 测试
-
-				krpf.setFdTemplateId("16a63559779e8cb2f93b0604d32857e2");// 正式
+				krpf.setFdTemplateId(prodJiXiaoRemaidTemplateId);
 				// 将两个参数设置到 krpf 中 传json格式
 				Map<String, String> krpfMap = new HashMap<String, String>();
 				krpfMap.put("fd_apply_person", name);
