@@ -340,6 +340,8 @@ public class GetMessPer {
 	private static final String devJiXiaoRemaidTemplateId = "16a3321e74947a149d9da8346d5925ff";
 
 	private static final String prodJiXiaoRemaidTemplateId = "16a63559779e8cb2f93b0604d32857e2";
+
+	private static final String JianCeProdJiXiaoRemaidTemplateId = "1707f7204b08d76b8dfd86242069d7ef";
 	@Scheduled(cron = "0 0 8 1 * ?")//每月1号8点
 	public void synPerformenceJianCe() {
 		System.out.println("--------检测公司绩效提醒---------");
@@ -415,7 +417,7 @@ public class GetMessPer {
 				// form.setDocCreator("{\"PersonNo\": \"000994\"}")
 				krpf.setDocCreator("{\"PersonNo\": \"" + e0127 + "\"}");
 				krpf.setDocSubject(year + "年" + month + "月度绩效计划及评价-" + a0101 + "-" + e0127);
-				krpf.setFdTemplateId(prodJiXiaoRemaidTemplateId);
+				krpf.setFdTemplateId(JianCeProdJiXiaoRemaidTemplateId);
 				// 将两个参数设置到 krpf 中 传json格式
 				Map<String, String> krpfMap = new HashMap<String, String>();
 				krpfMap.put("fd_apply_person", name);
